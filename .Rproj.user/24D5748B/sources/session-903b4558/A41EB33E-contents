@@ -1,4 +1,133 @@
 
+# collapse Factors and Levels of Responses
 
-print("Begin Data Load")
+print("Begin Data Cleaning")
+CaltechClimate_Nov2022 <- read_sav("Data/CalTech_November_2022.sav") 
+CaltechClimate_Nov2020 <- read_sav("Data/CALTECH_Post_Election_Survey_2020.sav")
+
+red_states    <-c(1,2,5,12,16,18,19,20,21,22,28,29,30,31,38,39,40,45,46,47,48,49,54,56)
+blue_states   <-c(6,8,9,10,11,15,17,23,24,25,27,34,35,36,41,44,50,51,53)
+swing_states <-c(4,13,26,32,33,37,42,55)
+
+
+# CaltechClimate_Nov2022 <- CaltechClimate_Nov2022%>%mutate(state_type = case_when(as.numeric(inputstate) %in% red_states ~ "Red States",
+#                                                                                  as.numeric(inputstate) %in% blue_states ~"Blue States",
+#                                                                                  as.numeric(inputstate) %in% swing_states ~ "Swing States",
+#                                                                                  TRUE ~NA))
+# 
+# CaltechClimate_Nov2020 <- CaltechClimate_Nov2020%>%mutate(state_type = case_when(as.numeric(inputstate) %in% red_states ~ "Red States",
+#                                                                                  as.numeric(inputstate) %in% blue_states ~"Blue States",
+#                                                                                  as.numeric(inputstate) %in% swing_states ~ "Swing States",
+#                                                                                  TRUE ~NA)) %>%filter(nat20_congvote %in% c(1,2))
+
+CaltechClimate_Nov2022<-droplevels(CaltechClimate_Nov2022%>%filter(Q18 %in% c(1,2)) %>% 
+                                     select(PartyID = pid3,
+                                            PartyID_recode =pid7,
+                                            Television = news_1,
+                                            Radio = news_2,
+                                            PrintPublications = news_3,
+                                            Online = news_4,
+                                            SocialMedia = Q67,
+                                            FollowGoverment = Q69,
+                                            EconomicSituation  =  Q75 ,
+                                            FinancialSituation = Q74,
+                                            Immigration = Q31_1,
+                                            Abortion = Q31_2,
+                                            ForeignPolicy = Q31_3,
+                                            EconomicInequality =  Q31_4 ,
+                                            COVID19 = Q31_5 ,
+                                            ViolentCrime = Q31_6,
+                                            HealthCare = Q31_7,
+                                            TheEconomy = Q31_8,
+                                            RacialandEthnicInequality = Q31_9,
+                                            ClimateChange = Q31_10 ,
+                                            Inflation = Q31_11,
+                                            GunPolicy = Q31_12,
+                                            SupremeCourtAppointments =  Q31_13 ,
+                                            Crime_ability=Q51_1,
+                                            Climate_ability=Q51_2,
+                                            Abortion_ability=Q51_3,
+                                            LawEnforcement_ability=Q51_4,
+                                            Covid_ability=Q51_5,
+                                            Budget_ability=Q51_6,
+                                            GrowEconomy_ability=Q51_7,
+                                            HealthCare_ability=Q51_8,
+                                            ForeignPolicy_ability=Q51_9,
+                                            Inflation_ability=Q51_10,
+                                            vote.cong = Q18,
+                                            vote.sen =senvote_combined,
+                                            vote.gov =govvote_combined,
+                                            Race = race,
+                                            Religion = Q85,
+                                            Education = educ, 
+                                            Age    = age4,
+                                            Region = region,
+                                            Gender = gender3,
+                                            # inputstate,
+                                            # state_type,
+                                            weight) %>% 
+                                     mutate(PartyID_recode=case_when(PartyID_recode %in%c(1,2,3) ~"Democrat",
+                                                                     PartyID_recode %in%c(4) ~"Independent",
+                                                                     PartyID_recode %in%c(5,6,7) ~"Republican",
+                                                                    TRUE ~paste0(PartyID)        ))%>%
+                                     mutate(across(!weight, as_factor)))
+
+
+
+CaltechClimate_Nov2020<-droplevels(CaltechClimate_Nov2020%>%filter(nat20_congvote %in% c(1,2),
+                                                                   ) %>% 
+                                     select(PartyID = pid3, 
+                                            PartyID_recode = pid7, 
+                                            vote.cong = nat20_congvote,
+                                            # inputstate,
+                                            # state_type,
+                                            Immigration = Q105a,
+                                            ViolentCrime = Q105f,
+                                            Abortion=Q105b, 
+                                            ForeignPolicy=Q105c,
+                                            EconomicInequality=Q105d,
+                                            COVID19=Q105e,
+                                            TheEconomy=Q105g,
+                                            HealthCare = Q105h,
+                                            RacialandEthnicInequality = Q105i,
+                                            ClimateChange = Q105j ,
+#                                            Inflation = Q31_11,
+                                            GunPolicy = Q105k,
+                                            SupremeCourtAppointments =  Q105l ,
+                                            Race=race4,
+                                            Education =educ4, 
+ #                                           Religion=
+                                            Region=region,
+                                            Age=age4,
+                                            Gender=gender,
+                                            weight) %>% 
+  mutate(PartyID_recode=case_when(PartyID_recode %in%c(1,2,3) ~"Democrat",
+                                  PartyID_recode %in%c(4) ~"Independent",
+                                  PartyID_recode %in%c(5,6,7) ~"Republican",
+                                  TRUE ~paste0(PartyID)        ))%>%
+                                     mutate(across(!weight, as_factor)))
+
+demographics <- c("Race", "Religion", "Education", "Age", "Region", "Gender")
+
+CaltechClimate_Nov2022 <- CaltechClimate_Nov2022[-c(280,  723,  884, 1115 ),]
+CaltechClimate_Nov2022 <- apply_levels(CaltechClimate_Nov2022)
+CaltechClimate_Nov2020 <- apply_levels(CaltechClimate_Nov2020,nov20 = T)
+
+
+
+national.design.Climate.nov2022 <- svydesign(data    = (CaltechClimate_Nov2022), 
+                                             weights = ~weight, 
+                                             id      = ~1)
+
+national.design.Climate.nov2020 <- svydesign(data    = (CaltechClimate_Nov2020), 
+                                             weights = ~weight, 
+                                             id      = ~1)
+
+save(CaltechClimate_Nov2022,
+     CaltechClimate_Nov2020,
+     national.design.Climate.nov2022,
+     national.design.Climate.nov2020,
+     file="Data/CleanedSurveys.RData")
+
+
 load("Data/CleanedSurveys.RData")
